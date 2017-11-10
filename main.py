@@ -2,13 +2,12 @@
 # Author : zubcarz@gmail.com
 
 import serial
-import plotly.plotly as py # plotly library
-from plotly.graph_objs import Scatter, Layout, Figure # plotly graph objects
 import time
 import datetime
 import atexit
 import os, sys
 import threading
+import csv
 
 def pressKey():
 	signal = 6
@@ -19,6 +18,10 @@ def pressKey():
 		if ser.isOpen():
 			ser.write(str(signal) + '\r')
 		time.sleep(0.2)
+
+def clearCsv():
+	csv = open(filename, "w+") 
+	csv.close()
 
 def printAction(action):
 	if action == "0":
@@ -50,12 +53,18 @@ def printAction(action):
 
 
 def exit_handler():
-	stream.close()
+	csv.close()
 	print 'Sensor Viewer Close!'
 
 def enum(**enums):
     return type('Enum', (), enums)
 
+## CSV Settings
+filename = "data.csv"
+clearCsv()
+csv = open(filename, "w") 
+
+## Close Event Handler
 atexit.register(exit_handler)
 
 Modes = enum(
@@ -73,42 +82,9 @@ Modes = enum(
 	PWMDinamic = 11
 )
 
-username = 'c.zubieta'
-api_key = 'HOI7Hy0aPK6oRWXjlYP1'
-stream_token = '46ul5ckyga'
-
-#username = 'zubcarz'
-#api_key = 'xanoTynG94z8fJCcIFEk'
-#stream_token = 'kl5dognpno'
-
 #serialPort = '/dev/cu.usbmodem1411'
 serialPort = '/dev/ttyACM0'
 
-py.sign_in(username, api_key)
-
-trace1 = Scatter(
-    x=[],
-    y=[],
-    stream=dict(
-        token=stream_token,
-        maxpoints=50
-    )
-)
-
-layout = Layout(
-    title='Raspberry Pi Streaming Hall Effect Data',
-    yaxis=dict(
-        autorange=True,
-        autotick=True,
-        ticks='',
-        #range=[100, 900]
-    )
-)
-
-fig = Figure(data=[trace1], layout=layout)
-py.plot(fig, filename='Raspberry Pi Streaming Example Values')
-stream = py.Stream(stream_token)
-stream.open()
 
 threads = list()
 t = threading.Thread(target=pressKey)
@@ -128,7 +104,7 @@ with serial.Serial( serialPort, 9600, timeout=1) as ser:
 				ser.flushOutput()
 				
 				# Write Plot
-				stream.write({'x': timeX, 'y': value})
+				csv.write(timeX + ", " + value +" \n")
 
 			except ValueError:
 				value = ser.readline()[:-2].decode()	
