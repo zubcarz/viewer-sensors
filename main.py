@@ -7,21 +7,15 @@ import datetime
 import atexit
 import os, sys
 import threading
-import csv
 
 def pressKey():
-	signal = 6
 	while True:    # infinite loop
 		keyPress = raw_input("Key Instruction :")
 		printAction(keyPress)
 		signal = int(keyPress)
 		if ser.isOpen():
 			ser.write(str(signal) + '\r')
-		time.sleep(0.2)
-
-def clearCsv():
-	csv = open(filename, "w+") 
-	csv.close()
+		time.sleep(0.1)
 
 def printAction(action):
 	if action == "0":
@@ -53,16 +47,10 @@ def printAction(action):
 
 
 def exit_handler():
-	csv.close()
 	print 'Sensor Viewer Close!'
 
 def enum(**enums):
     return type('Enum', (), enums)
-
-## CSV Settings
-filename = "data.csv"
-clearCsv()
-csv = open(filename, "w") 
 
 ## Close Event Handler
 atexit.register(exit_handler)
@@ -83,7 +71,7 @@ Modes = enum(
 )
 
 #serialPort = '/dev/cu.usbmodem1411'
-serialPort = '/dev/ttyACM0'
+serialPort = '/dev/ttyACM1'
 
 
 threads = list()
@@ -92,22 +80,22 @@ threads.append(t)
 t.start()
 
 with serial.Serial( serialPort, 9600, timeout=1) as ser:
+	with open("data.csv", "wb") as f: 
 		while True:
 			try:
-				#value = int(str(ser.readline(),"utf-8").strip())
-				value = int(ser.readline()[:-2].decode())
-				timeX = int(round(time.time() * 1000))
+			
+				value = ser.readline()[:-2].decode().rstrip()
+				timeX = round(time.time() * 1000)
 
+				# Write Plot
+				f.write(str(timeX) + ", " + str(value) +" \n")
+				
 				print(value)
-
 				ser.flushInput()
 				ser.flushOutput()
-				
-				# Write Plot
-				csv.write(timeX + ", " + value +" \n")
 
 			except ValueError:
 				value = ser.readline()[:-2].decode()	
 				print("Value Error : " + value)
-
-			time.sleep(0.2) # delay between stream posts
+			time.sleep(0.1)
+		
